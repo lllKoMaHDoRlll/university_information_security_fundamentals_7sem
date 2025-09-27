@@ -54,7 +54,41 @@ def cyph(text: str):
     for i in range(len(r1)):
         r1_res += "1" if int(r1[i]) + int(l0[i]) == 1 else "0"
     print(f" [DEBUG] после сложения r1={r1_res}")
+    return {'r1': r1_res, 'l1': l0, 'k': k_bin}
 
+def decyph(l1: str, r1: str, k: str):
+    def from_bin(code):
+        c = ''
+        if code == 32:
+            c = ' '
+        else:
+            c = chr(code + 848)
+        return c
+    r1_res = ''
+    for i in range(len(r1)):
+        if r1[i] == '0':
+            r1_res += '1' if l1[i] == '1' else '0'
+        else:
+            r1_res += '0' if l1[i] == '1' else '1'
+    print(f" [DEBUG] после вычитания l1: {r1_res}")
+    r1 = r1_res[-11:] + r1_res[:-11]
+    print(f" [DEBUG] после обратного сдвига: {r1}")
+    r1_replaced = []
+    for i in range(8):
+        part = r1[i * 4: (i+1) * 4]
+        code = int(part, 2)
+        index = list(map(lambda x: x[i], REPLACEMENT_BLOCK)).index(code)
+        r1_replaced.append(bin(index)[2:].zfill(4))
+    r1 = "".join(r1_replaced)
+    print(f" [DEBUG] после обратной замены {r1}")
+    r0 = str(bin(int(r1, 2) - int(k, 2)))[2:][-32:]
+    print(f" [DEBUG] после вычитания {r0}")
+    l0_decrypted = ''
+    r0_decrypted = ''
+    for i in range(4):
+        l0_decrypted += from_bin(int(l1[i * 8 : (i + 1) * 8], 2))
+        r0_decrypted += from_bin(int(r0[i * 8 : (i + 1) * 8], 2))
+    print(l0_decrypted, r0_decrypted)
 
 
 
@@ -62,4 +96,5 @@ def cyph(text: str):
 
 input_text = "ОРЛИЧЕНЯ АЛЕКСАНДР ВАСИЛЬЕВИЧ И КРИП"
 
-print(cyph(input_text))
+encrypted = cyph(input_text)
+decrypted = decyph(l1= encrypted['l1'], r1=encrypted['r1'], k=encrypted['k'])
