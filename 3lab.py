@@ -9,7 +9,7 @@ def mcd(n1: int, n2: int):
     return res
 
 def extended_euclid_alg(d: int, phi: int):
-    DO_LOG = False
+    DO_LOG = True
     r = [phi, d]
     q = [None, None]
     s = [1, 0]
@@ -29,7 +29,7 @@ def extended_euclid_alg(d: int, phi: int):
     return t[-2] if t[-2] > 0 else t[-2] + t[-1]
 
 def fast_multiplication(base, power, modulo):
-    DO_LOG = False
+    DO_LOG = True
     result = 1
     k = 1
     while power > 0:
@@ -62,7 +62,7 @@ def gen_keys(p: int, q: int):
     }
 
 def encode_rsa(public_key: tuple[int, int], text: str):
-    DO_LOG = False
+    DO_LOG = True
     text_ord = list(map(lambda x: ord(x) - 1039, list(text)))
     if DO_LOG: print(f' [DEBUG] Char codes of text: {text_ord}')
     encoded = list(map(lambda m: fast_multiplication(m, public_key[0], public_key[1]), text_ord))
@@ -70,7 +70,7 @@ def encode_rsa(public_key: tuple[int, int], text: str):
     return encoded
 
 def decode_rsa(private_key: tuple[int, int], encoded_text: list[int]):
-    DO_LOG = False
+    DO_LOG = True
     decoded = list(map(lambda c: fast_multiplication(c, private_key[0], private_key[1]), encoded_text))
     if DO_LOG: print(f' [DEBUG] decoded char codes {decoded}')
     text = ''.join(list(map(lambda c: chr(c + 1039), decoded)))
@@ -79,8 +79,8 @@ def decode_rsa(private_key: tuple[int, int], encoded_text: list[int]):
 
 if __name__ == '__main__':
     DO_LOG = True
-    p = 13
-    q = 19
+    p = 11
+    q = 7
     keys = gen_keys(p, q)
     if DO_LOG: print(f' [DEBUG] {keys=}')
     text = "ОРЛ"
