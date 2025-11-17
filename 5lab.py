@@ -1,5 +1,10 @@
 import random
 
+def mcd(n1: int, n2: int):
+    res = 1
+    for divider in range(1, min(n1, n2)):
+        if n1 % divider == 0 and n2 % divider == 0: res = divider
+    return res
 
 def fast_multiplication(base, power, modulo):
     DO_LOG = False
@@ -65,7 +70,7 @@ def rabin_miller_test(p: int, k: int = 5):
     return True
 
 def generate_prime(n: int = 10):
-    DO_LOG = True
+    DO_LOG = False
     while True:
         PRIMES = [
             3, 5, 7, 11, 13, 17, 19, 23, 29,
@@ -106,13 +111,13 @@ def factorize(n: int) -> list[int]:
     return factors
 
 def get_primitive(p: int):
-    DO_LOG = True
+    DO_LOG = False
     phi = p - 1
     dividers = factorize(phi)
     if DO_LOG: print(f' [DEBUG] Делители phi(p-1): {dividers}')
-
     nums = list(range(2, p))
     random.shuffle(nums)
+    primitive = None
     for a in nums:
         if DO_LOG: print(f' [DEBUG] Проверка возможности примитивности числа a={a}')
         is_possible_primitive = True
@@ -131,7 +136,22 @@ def get_primitive(p: int):
                     is_primitive = False
                     break
             if is_primitive:
-                return a
+                primitive = a
+
+    primitives = []
+    if primitive is not None:
+        primitives.append(primitive)
+        print(f' [DEBUG] Найден первый примитивный элемент: {primitive}')
+        for t in range(2, p - 1):
+            if mcd(t, p - 1) == 1:
+                new_primitive = primitives[-1] ** t
+                primitives.append(new_primitive)
+                print(f' [DEBUG] Добавлен новый примитивный элемент: {new_primitive=}, {primitives[-2]=}, {t=}')
+                if len(primitives) >= 5:
+                    break
+
+    return primitives
+
 
 
 
@@ -141,11 +161,12 @@ def get_key_pair(p: int, g: int):
     return {'x': x, 'y': y}
 
 if __name__ == '__main__':
-    p = 53 # generate_prime(21)
-    g = get_primitive(p)
+    p = generate_prime(21)
+    g_list = get_primitive(p)
+    print(f'Простое число p: {p}, примитивные числа g: {g_list} ')
 
-    alisa_key_pair = get_key_pair(p, g)
-    bob_key_pair = get_key_pair(p, g)
+    alisa_key_pair = get_key_pair(p, g_list[0])
+    bob_key_pair = get_key_pair(p, g_list[0])
 
     common_secret_key_alisa = fast_multiplication(bob_key_pair["y"], alisa_key_pair["x"], p)
     common_secret_key_bob = fast_multiplication(alisa_key_pair["y"], bob_key_pair["x"], p)
