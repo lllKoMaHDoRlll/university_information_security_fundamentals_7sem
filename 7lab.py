@@ -1,8 +1,115 @@
 import math
 import random
 
+def fast_multiplication(base, power, modulo):
+    DO_LOG = False
+    result = 1
+    k = 1
+    while power > 0:
+        s = power % 2
+        if s == 1:
+            result = (result * base) % modulo
+        if DO_LOG: print(f'{k=}, {base=}, {power=}, {s=}, {result=}')
+        base = (base * base) % modulo
+        power = (power - s) // 2
+        k += 1
+    return result
+
+def isqrt(n: int) -> int:
+    if n == 0:
+        return 0
+
+    x = n
+    y = (x + 1) // 2
+
+    while y < x:
+        x = y
+        y = (x + n // x) // 2
+
+    return x
+
+
+def is_perfect_square(n: int) -> tuple[bool, int]:
+    if n < 0:
+        return (False, 0)
+
+    root = isqrt(n)
+    if root * root == n:
+        return (True, root)
+    return (False, root)
+
+
+def fermat_factorization(n: int):
+    DO_LOG = False
+
+    if n % 2 == 0:
+        if DO_LOG: print(f' [DEBUG] n четное, возвращаем (2, {n // 2})')
+        return (2, n // 2)
+
+    for i in range(3, 1000000, 2):
+        if n % i == 0:
+            if DO_LOG: print(f' [DEBUG] пробное деление {(i, n // i)}')
+            return (i, n // i)
+
+    a = isqrt(n)
+    if a * a < n:
+        a += 1
+
+    if DO_LOG: print(f' [DEBUG] начинаем ферма с a = ceil(sqrt({n})) = {a}')
+
+    max_iterations = 10_000_000
+    b_squared = a * a - n
+
+    for iteration in range(max_iterations):
+        is_perfect, b = is_perfect_square(b_squared)
+
+        if iteration % 10000 == 0:
+            print(a + b, a - b)
+
+        if is_perfect:
+            p = a + b
+            q = a - b
+            if DO_LOG: print(f' [DEBUG] найденные делители: p={p}, q={q}')
+            if p * q == n:
+                return (p, q)
+
+        a += 1
+        b_squared += a*a - n
+
+
+    if DO_LOG: print(f' [DEBUG] вышли за пределы по итерациям')
+    return (None, None)
+
+
+def find_all_factors(n: int):
+    DO_LOG = False
+
+    if DO_LOG: print(f' [DEBUG] ищем все делители {n}')
+
+    if n == 1:
+        return []
+
+    if n == 2:
+        return [2]
+
+    if rabin_miller_test(n, 10):
+        if DO_LOG: print(f' [DEBUG] {n} простое')
+        return [n]
+
+    p, q = fermat_factorization(n)
+
+    if p is None:
+        print(f" [ERROR] ошибка метода ферма")
+        return [n]
+
+    factors = []
+    factors.extend(find_all_factors(p))
+    factors.extend(find_all_factors(q))
+
+    return sorted(factors)
+
 def extended_euclid_alg(d: int, phi: int):
-    DO_LOG = True
+    DO_LOG = False
     r = [phi, d]
     q = [None, None]
     s = [1, 0]
@@ -117,10 +224,10 @@ def generate_prime(n: int = 10):
 
 def solve_equation(p: int):
     for x in range(1, p):
-        for k in range(10):
-            y_squared = k * p + (x**3 + x)
-            y = math.sqrt(y_squared)
-            if y == int(y):
+        for k in range(p):
+            y_squared = k * p + (x**3 + x) % p
+            is_y_squared, y = is_perfect_square(y_squared)
+            if is_y_squared:
                 return (x, int(y))
 
 def obr(a, b):
@@ -135,7 +242,6 @@ def add(p: tuple[int, int], q: tuple[int, int], modulo):
         k = ((q[1] - p[1]) * obr(q[0] - p[0], modulo)) % modulo # через обратный алгоритм евклида
         x = (k*k - (p[0] + q[0])) % modulo
         y = (k*(p[0] - x) - p[1]) % modulo
-        print(k, x, y)
         return (x, y)
     elif q[0] == p[0] and p[1] + q[1] == 0:
         return ('*', 'inf')
@@ -146,11 +252,27 @@ def add(p: tuple[int, int], q: tuple[int, int], modulo):
         return (x, y)
     return p
 
-if __name__ == '__main__':
-    modulo = 19319
-    point = solve_equation(modulo)
-    ps = [point]
-    d = str(bin(151))[2:]
+def check_hosse(q: int, g_power: int):
+    q_root = math.sqrt(q)
+    return q + 1 - 2 * q_root <= g_power <= q + 1 + 2 * q_root
+
+def get_curve_order(p: int):
+    count = 1
+    for x in range(0, p):
+        for y in range(0, p):
+            if (y*y) % p == (x**3 + x) % p:
+                count += 1
+                if y != 0:
+                    count += 1
+                break
+
+    if check_hosse(p, count):
+        return count
+
+
+def multiply_point(p: tuple[int, int], mulitplier: int, modulo: int):
+    ps = [p]
+    d = str(bin(mulitplier))[2:]
     for i in range(1, len(d)):
         ps.append(add(ps[-1], ps[-1], modulo))
     res = None
@@ -159,5 +281,24 @@ if __name__ == '__main__':
             if res is None: res = ps[len(ps) - 1 - i]
             else:
                 res = add(res, ps[len(ps) - 1 - i], modulo)
+    return res
 
-    print(res)
+def get_point_order(point: tuple[int, int], k: int, modulo: int):
+    factors = set(find_all_factors(k))
+    for factor in factors:
+        ki = k // factor
+        if multiply_point(point, ki, modulo) == ('*', 'inf'):
+            return get_point_order(point, ki, modulo)
+    return k
+
+if __name__ == '__main__':
+    modulo = 1613 # о 16, а 1, в 3
+    # modulo = 19319
+    point = solve_equation(modulo)
+    print(point)
+
+    print(multiply_point(point, 151, modulo))
+
+    k = get_curve_order(modulo)
+    print(k)
+    print(get_point_order(point, k, modulo))
